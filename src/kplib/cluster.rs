@@ -43,6 +43,9 @@ pub fn diploid_haplotypes(
     mut haplos: Vec<Haplotype>,
     coverage: u64,
     params: &KDParams,
+    p_alt_00: f64,
+    p_alt_01: f64,
+    p_alt_11: f64
 ) -> Vec<Haplotype> {
     if coverage == 0 || haplos.is_empty() {
         return vec![];
@@ -136,7 +139,7 @@ pub fn diploid_haplotypes(
     // there's 1 or 2 alts. Now we figure out if its Het/Hom
     let applied_coverage = (hap1.coverage + hap2.coverage) as f64;
     let remaining_coverage = coverage as f64 - applied_coverage;
-    match metrics::genotyper(remaining_coverage, applied_coverage) {
+    match metrics::genotyper(remaining_coverage, applied_coverage, p_alt_00, p_alt_01, p_alt_11) {
         // We need the one higher covered alt
         metrics::GTstate::Ref | metrics::GTstate::Het => {
             hap2.coverage += hap1.coverage;

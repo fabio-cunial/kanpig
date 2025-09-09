@@ -95,11 +95,11 @@ pub enum GTstate {
 ///
 /// # Panics
 /// This function will panic if an invalid state is encountered, which should be impossible under normal circumstances.
-pub fn genotyper(alt1_cov: f64, alt2_cov: f64) -> GTstate {
+pub fn genotyper(alt1_cov: f64, alt2_cov: f64, p_alt_00: f64, p_alt_01: f64, p_alt_11: f64) -> GTstate {
     if (alt1_cov + alt2_cov) == 0.0 {
         return GTstate::Non;
     }
-    let ret = match genotype_scores(alt1_cov, alt2_cov)
+    let ret = match genotype_scores(alt1_cov, alt2_cov, p_alt_00, p_alt_01, p_alt_11)
         .iter()
         .enumerate()
         .max_by_key(|&(_, &x)| OrderedFloat(x))
@@ -127,13 +127,9 @@ pub fn genotyper(alt1_cov: f64, alt2_cov: f64) -> GTstate {
 /// - The first value corresponds to the reference genotype.
 /// - The second value corresponds to the heterozygous genotype.
 /// - The third value corresponds to the homozygous genotype.
-fn genotype_scores(alt1_cov: f64, alt2_cov: f64) -> [f64; 3] {
+fn genotype_scores(alt1_cov: f64, alt2_cov: f64, p_alt_00: f64, p_alt_01: f64, p_alt_11: f64) -> [f64; 3] {
     // Needs to be more pure for lower coverage
-    let p_alt: &[f64] = if alt1_cov + alt2_cov < 10.0 {
-        &[1e-3, 0.55, 0.95]
-    } else {
-        &[1e-3, 0.50, 0.90]
-    };
+    let p_alt: &[f64] = &[p_alt_00, p_alt_01, p_alt_11];
 
     let total = alt1_cov + alt2_cov;
     let log_combo = log_choose(total, alt2_cov);
@@ -155,8 +151,8 @@ fn genotype_scores(alt1_cov: f64, alt2_cov: f64) -> [f64; 3] {
 /// A tuple containing two floating-point values:
 /// - The first value is the genotype quality (GQ).
 /// - The second value is the sample quality (SQ).
-pub fn genotype_quals(ref_cov: f64, alt_cov: f64) -> (f64, f64) {
-    let mut gt_lplist = genotype_scores(ref_cov, alt_cov);
+pub fn genotype_quals(ref_cov: f64, alt_cov: f64, p_alt_00: f64, p_alt_01: f64, p_alt_11: f64) -> (f64, f64) {
+    let mut gt_lplist = genotype_scores(ref_cov, alt_cov, p_alt_00, p_alt_01, p_alt_11);
 
     let mut gt_sum = 0.0;
     for gt in &gt_lplist {

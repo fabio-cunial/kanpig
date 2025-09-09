@@ -47,6 +47,9 @@ pub struct Variants {
     pub end: u64,
     pub node_indices: Vec<NodeIndex>,
     pub graph: DiGraph<VarNode, ()>,
+    pub p_alt_00: f64,
+    pub p_alt_01: f64,
+    pub p_alt_11: f64
 }
 
 /// Build a graph of all variants in a chunk.
@@ -55,7 +58,7 @@ pub struct Variants {
 /// The graph has an upstream 'src' node that point to every variant node
 /// The graph has a dnstream 'snk' node that is pointed to by every variant node and 'src'
 impl Variants {
-    pub fn new(mut variants: Vec<RecordBuf>, kmer: u8, maxhom: usize) -> Self {
+    pub fn new(mut variants: Vec<RecordBuf>, kmer: u8, maxhom: usize, p_alt_00: f64, p_alt_01: f64, p_alt_11: f64) -> Self {
         if variants.is_empty() {
             panic!("Cannot create a graph from no variants");
         }
@@ -81,6 +84,9 @@ impl Variants {
             end,
             node_indices,
             graph,
+            p_alt_00,
+            p_alt_01,
+            p_alt_11
         }
     }
 
@@ -143,7 +149,7 @@ impl Variants {
         &mut self,
         paths: &[PathScore],
         coverage: u64,
-        ploidy: &Ploidy,
+        ploidy: &Ploidy
     ) -> Vec<GenotypeAnno> {
         self.node_indices
             .iter_mut()
@@ -154,7 +160,7 @@ impl Variants {
                     .entry
                     .take()
                     .map(|entry| {
-                        GenotypeAnno::new(entry, var_idx, paths, coverage, ploidy, self.start)
+                        GenotypeAnno::new(entry, var_idx, paths, coverage, ploidy, self.start, self.p_alt_00, self.p_alt_01, self.p_alt_11)
                     })
             })
             .collect::<Vec<GenotypeAnno>>()
@@ -172,7 +178,7 @@ impl Variants {
                     .entry
                     .as_ref()
                     .map(|entry| {
-                        GenotypeAnno::new(entry.clone(), &var_idx, paths, coverage, &Ploidy::Unset, self.start)
+                        GenotypeAnno::new(entry.clone(), &var_idx, paths, coverage, &Ploidy::Unset, self.start, self.p_alt_00, self.p_alt_01, self.p_alt_11)
                     })
             })
             .collect::<Vec<GenotypeAnno>>()

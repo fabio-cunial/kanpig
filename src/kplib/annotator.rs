@@ -34,7 +34,7 @@ pub struct GenotypeAnno {
     pub ad: IntG,
     pub ks: IntG,
     pub gt_state: metrics::GTstate,
-    pub ne: u64,
+    pub ne: u64
 }
 
 impl GenotypeAnno {
@@ -46,11 +46,14 @@ impl GenotypeAnno {
         coverage: u64,
         ploidy: &Ploidy,
         neigh_group: u64,
+        p_alt_00: f64,
+        p_alt_01: f64,
+        p_alt_11: f64
     ) -> Self {
         match ploidy {
             Ploidy::Zero => zero(entry, coverage, neigh_group),
-            Ploidy::Haploid => haploid(entry, var_idx, paths, coverage, neigh_group),
-            _ => diploid(entry, var_idx, paths, coverage, neigh_group),
+            Ploidy::Haploid => haploid(entry, var_idx, paths, coverage, neigh_group, p_alt_00, p_alt_01, p_alt_11),
+            _ => diploid(entry, var_idx, paths, coverage, neigh_group, p_alt_00, p_alt_01, p_alt_11),
         }
     }
 
@@ -79,15 +82,18 @@ fn diploid(
     paths: &[PathScore],
     coverage: u64,
     neigh_group: u64,
+    p_alt_00: f64,
+    p_alt_01: f64,
+    p_alt_11: f64
 ) -> GenotypeAnno {
     let handle = match &paths {
         [] => handle_diploid_no_paths(coverage),
-        [p] => handle_diploid_single_path(var_idx, p, coverage),
+        [p] => handle_diploid_single_path(var_idx, p, coverage, p_alt_00, p_alt_01, p_alt_11),
         [p1, p2] => handle_diploid_two_paths(var_idx, p1, p2, coverage),
         _ => panic!("Unexpected number of paths for diploid region"),
     };
 
-    finalize_annotation(entry, handle, paths, coverage, neigh_group)
+    finalize_annotation(entry, handle, paths, coverage, neigh_group, p_alt_00, p_alt_01, p_alt_11)
 }
 
 /// Helper for zero ploidy regions.
@@ -103,7 +109,7 @@ fn zero(entry: RecordBuf, coverage: u64, neigh_group: u64) -> GenotypeAnno {
         ad: vec![None],
         ks: vec![None],
         gt_state: metrics::GTstate::Non,
-        ne: neigh_group,
+        ne: neigh_group
     }
 }
 
@@ -115,13 +121,16 @@ fn haploid(
     paths: &[PathScore],
     coverage: u64,
     neigh_group: u64,
+    p_alt_00: f64,
+    p_alt_01: f64,
+    p_alt_11: f64
 ) -> GenotypeAnno {
     if paths.is_empty() {
         let handle = match coverage {
             0 => (".", metrics::GTstate::Non, 0.0, true),
             _ => ("0", metrics::GTstate::Ref, 0.0, true),
         };
-        return finalize_annotation(entry, handle, paths, coverage, neigh_group);
+        return finalize_annotation(entry, handle, paths, coverage, neigh_group, p_alt_00, p_alt_01, p_alt_11);
     }
 
     let path1 = &paths[0];
@@ -135,7 +144,7 @@ fn haploid(
         false if coverage != 0 => ("0", metrics::GTstate::Ref, 0.0, true),
         false => (".", metrics::GTstate::Non, 0.0, true),
     };
-    finalize_annotation(entry, handle, paths, coverage, neigh_group)
+    finalize_annotation(entry, handle, paths, coverage, neigh_group, p_alt_00, p_alt_01, p_alt_11)
 }
 
 /// GT str, GTstate, alt_cov, is_fulltarget
@@ -153,13 +162,16 @@ fn handle_diploid_single_path<'a>(
     var_idx: &NodeIndex,
     path: &PathScore,
     coverage: u64,
+    p_alt_00: f64,
+    p_alt_01: f64,
+    p_alt_11: f64
 ) -> HandleReturn<'a> {
     if !path.path.contains(var_idx) {
         ("0|0", metrics::GTstate::Ref, 0.0, true)
     } else {
         let alt_cov = path.coverage.unwrap() as f64;
         let ref_cov = (coverage as f64) - alt_cov;
-        let (genotype, state) = match metrics::genotyper(ref_cov, alt_cov) {
+        let (genotype, state) = match metrics::genotyper(ref_cov, alt_cov, p_alt_00, p_alt_01, p_alt_11) {
             metrics::GTstate::Ref | metrics::GTstate::Het => {
                 let gt = match path.hp {
                     None => "0|1",
@@ -211,14 +223,17 @@ fn finalize_annotation(
     paths: &[PathScore],
     coverage: u64,
     neigh_group: u64,
+    p_alt_00: f64, 
+    p_alt_01: f64,
+    p_alt_11: f64
 ) -> GenotypeAnno {
     let (gt_str, gt_path, alt_cov, full_target) = handle;
     let ref_cov = coverage as f64 - alt_cov;
 
-    let gt_obs = metrics::genotyper(ref_cov, alt_cov);
+    let gt_obs = metrics::genotyper(ref_cov, alt_cov, p_alt_00, p_alt_01, p_alt_11);
 
     // we're now assuming that ref/alt are the coverages used for these genotypes. no bueno
-    let (gq, sq) = metrics::genotype_quals(ref_cov, alt_cov);
+    let (gq, sq) = metrics::genotype_quals(ref_cov, alt_cov, p_alt_00, p_alt_01, p_alt_11);
 
     let ps = if !paths.is_empty() { paths[0].ps } else { None };
 
@@ -266,6 +281,6 @@ fn finalize_annotation(
         ad,
         ks,
         gt_state: gt_path,
-        ne: neigh_group,
+        ne: neigh_group
     }
 }

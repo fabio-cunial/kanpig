@@ -112,7 +112,7 @@ fn task_thread(
         match m_receiver.recv() {
             Ok(None) | Err(_) => break,
             Ok(Some(chunk)) => {
-                let mut m_graph = Variants::new(chunk, m_args.kd.kmer, m_args.kd.maxhom);
+                let mut m_graph = Variants::new(chunk, m_args.kd.kmer, m_args.kd.maxhom, m_args.io.p_alt_00, m_args.io.p_alt_01, m_args.io.p_alt_11);
 
                 let ploidy = m_ploidy.get_ploidy(&m_graph.chrom, m_graph.start);
                 // For zero, we don't have to waste time going into the bam
@@ -125,7 +125,7 @@ fn task_thread(
 
                 let (haps, coverage) =
                     m_reads.find_pileups(&m_graph.chrom, m_graph.start, m_graph.end);
-                let haps = ploidy.cluster(haps, coverage, &m_args.kd);
+                let haps = ploidy.cluster(haps, coverage, &m_args.kd, m_args.io.p_alt_00, m_args.io.p_alt_01, m_args.io.p_alt_11);
 
                 // Only need to build the full graph sometimes
                 let should_build = !haps.is_empty()

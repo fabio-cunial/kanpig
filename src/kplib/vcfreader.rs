@@ -119,6 +119,9 @@ impl<R: BufRead> VcfChunker<R> {
                             0,
                             &Ploidy::Zero,
                             0,
+                            0.0,
+                            0.0,
+                            0.0
                         )]));
                     }
                 }

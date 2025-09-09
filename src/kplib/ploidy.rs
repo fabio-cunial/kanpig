@@ -40,10 +40,13 @@ impl Ploidy {
         haps: Vec<Haplotype>,
         coverage: u64,
         params: &KDParams,
+        p_alt_00: f64,
+        p_alt_01: f64,
+        p_alt_11: f64
     ) -> Vec<Haplotype> {
         match self {
             Ploidy::Haploid => haploid_haplotypes(haps, coverage, params),
-            _ => diploid_haplotypes(haps, coverage, params),
+            _ => diploid_haplotypes(haps, coverage, params, p_alt_00, p_alt_01, p_alt_11),
             // and then eventually this could allow a --ploidy flag to branch to
             // polyploid_haplotypes
         }

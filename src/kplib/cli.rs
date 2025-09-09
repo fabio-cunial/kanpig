@@ -140,6 +140,18 @@ pub struct IOParams {
     /// Verbose logging
     #[arg(long, default_value_t = false)]
     pub debug: bool,
+    
+    /// p_alt_00
+    #[arg(long, default_value_t = 1e-3)]
+    pub p_alt_00: f64,
+    
+    /// p_alt_01
+    #[arg(long, default_value_t = 0.50)]
+    pub p_alt_01: f64,
+    
+    /// p_alt_11
+    #[arg(long, default_value_t = 0.90)]
+    pub p_alt_11: f64,
 }
 
 #[derive(clap::Args, Clone, Debug)]
